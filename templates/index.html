@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шахматная обработка изображений</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Шахматная обработка изображений</h1>
+        
+        <form method="POST" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="image">Выберите изображение:</label>
+                <input type="file" id="image" name="image" accept="image/*">
+            </div>
+            
+            <div class="form-group">
+                <label for="cell_size">Размер шахматной клетки (% от размера изображения):</label>
+                <input type="number" id="cell_size" name="cell_size" 
+                       value="{{ cell_size }}" min="1" max="50" step="0.1" required>
+            </div>
+            
+            <button type="submit" class="btn">Обработать изображение</button>
+        </form>
+
+        {% if original_image %}
+        <div class="results">
+            <div class="image-section">
+                <div class="image-container">
+                    <h2>Исходное изображение</h2>
+                    <img src="{{ original_image }}" alt="Original Image" class="processed-image">
+                </div>
+                
+                {% if processed_image %}
+                <div class="image-container">
+                    <h2>Обработанное изображение</h2>
+                    <img src="{{ processed_image }}?{{ range(1, 100000) | random }}" 
+                         alt="Processed Image" class="processed-image">
+                </div>
+                {% endif %}
+            </div>
+
+            {% if original_plot and processed_plot %}
+            <div class="plots-section">
+                <div class="plot-container">
+                    <h2>Распределение цветов - Исходное</h2>
+                    <img src="data:image/png;base64,{{ original_plot }}" 
+                         alt="Original Color Distribution" class="plot-image">
+                </div>
+                
+                <div class="plot-container">
+                    <h2>Распределение цветов - Обработанное</h2>
+                    <img src="data:image/png;base64,{{ processed_plot }}" 
+                         alt="Processed Color Distribution" class="plot-image">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>
