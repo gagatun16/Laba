@@ -188,6 +188,7 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    # Создаем директорию для загрузок если её нет
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    app.run(debug=True)
+    # Получаем порт из переменной окружения Render, или используем 10000 по умолчанию
+    port = int(os.environ.get('PORT', 10000))
+    # Запускаем на 0.0.0.0 чтобы принимать подключения извне
+    app.run(host='0.0.0.0', port=port, debug=False)
