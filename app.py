@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Agg')  # Должно быть ПЕРВОЙ строкой после импортов
+matplotlib.use('Agg') 
 from flask import Flask, render_template, request
 from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
