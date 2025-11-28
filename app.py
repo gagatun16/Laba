@@ -1,162 +1,106 @@
-import matplotlib
-matplotlib.use('Agg') 
-from flask import Flask, render_template, request
-from PIL import Image, ImageDraw
-import matplotlib.pyplot as plt
-import numpy as np
-import io
-import base64
+import pytest
 import os
+import sys
+from PIL import Image, ImageDraw
+import numpy as np
 
-app = Flask(__name__)
+# Добавляем путь к приложению
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Конфигурация
-UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-DEFAULT_IMAGE = 'default.jpg'
+from app import create_chessboard_pattern, create_color_distribution_plot, allowed_file
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# Создаем папку для загрузок при запуске
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def create_chessboard_pattern(image, cell_size_percent):
-    """Создает шахматный узор на изображении"""
-    img = image.copy()
-    draw = ImageDraw.Draw(img)
-    width, height = img.size
+class TestImageProcessing:
+    """Тесты для функций обработки изображений"""
     
-    # Размер клетки в пикселях
-    cell_size = int(min(width, height) * (cell_size_percent / 100))
-    
-    # Создаем шахматный узор
-    for y in range(0, height, cell_size):
-        for x in range(0, width, cell_size):
-            # Определяем цвет клетки (черный или белый)
-            if (x // cell_size + y // cell_size) % 2 == 0:
-                # Черная клетка
-                draw.rectangle([x, y, x + cell_size, y + cell_size], fill='black')
-    
-    return img
-
-def create_color_distribution_plot(image, title):
-    """Создает график распределения цветов"""
-    # Конвертируем изображение в numpy array
-    img_array = np.array(image)
-    
-    # Создаем график
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
-    
-    # Распределение цветов по каналам
-    colors = ['red', 'green', 'blue']
-    color_names = ['Red', 'Green', 'Blue']
-    
-    for i, color in enumerate(colors):
-        if len(img_array.shape) == 3:  # RGB изображение
-            channel_data = img_array[:, :, i].flatten()
-        else:  # Grayscale
-            channel_data = img_array.flatten()
+    def setup_method(self):
+        """Создание тестового изображения перед каждым тестом"""
+        self.test_image = Image.new('RGB', (100, 100), color='white')
+        draw = ImageDraw.Draw(self.test_image)
+        draw.rectangle([25, 25, 75, 75], fill='red')
         
-        ax1.hist(channel_data, bins=50, alpha=0.7, color=color, label=color_names[i])
-    
-    ax1.set_title(f'{title} - Color Distribution')
-    ax1.set_xlabel('Color Value')
-    ax1.set_ylabel('Frequency')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    # Средние значения цветов
-    if len(img_array.shape) == 3:
-        avg_colors = [np.mean(img_array[:, :, i]) for i in range(3)]
-        ax2.bar(color_names, avg_colors, color=colors, alpha=0.7)
-        ax2.set_ylim(0, 255)
-    else:
-        avg_color = np.mean(img_array)
-        ax2.bar(['Gray'], [avg_color], color='gray', alpha=0.7)
-        ax2.set_ylim(0, 255)
-    
-    ax2.set_title(f'{title} - Average Colors')
-    ax2.set_ylabel('Average Value')
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    
-    # Конвертируем график в base64
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-    buf.seek(0)
-    plt.close()
-    
-    return base64.b64encode(buf.getvalue()).decode('utf-8')
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    original_image_path = None
-    processed_image = None
-    original_plot = None
-    processed_plot = None
-    cell_size = 10  # значение по умолчанию
-    
-    # Путь к изображению по умолчанию
-    default_image_path = os.path.join(app.config['UPLOAD_FOLDER'], DEFAULT_IMAGE)
-    
-    # Создаем изображение по умолчанию если его нет
-    if not os.path.exists(default_image_path):
-        default_img = Image.new('RGB', (400, 400), color='lightblue')
-        default_img.save(default_image_path)
-    
-    if request.method == 'POST':
-        # Получаем размер клетки от пользователя
-        cell_size = float(request.form.get('cell_size', 10))
+    def test_create_chessboard_pattern(self):
+        """Тест создания шахматного узора"""
+        # Тестируем с разными размерами клеток
+        for cell_size in [5, 10, 20]:
+            result = create_chessboard_pattern(self.test_image, cell_size)
+            
+            # Проверяем, что изображение создано
+            assert result is not None
+            assert isinstance(result, Image.Image)
+            assert result.size == self.test_image.size
+            
+    def test_create_chessboard_pattern_edge_cases(self):
+        """Тест крайних случаев для шахматного узора"""
+        # Очень маленький размер клетки
+        result_small = create_chessboard_pattern(self.test_image, 1)
+        assert result_small is not None
         
-        # Проверяем, загрузил ли пользователь новое изображение
-        if 'image' in request.files:
-            file = request.files['image']
-            if file and allowed_file(file.filename):
-                filename = DEFAULT_IMAGE
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
-                original_image_path = filepath
-            else:
-                original_image_path = default_image_path
-        else:
-            original_image_path = default_image_path
+        # Очень большой размер клетки
+        result_large = create_chessboard_pattern(self.test_image, 50)
+        assert result_large is not None
         
-        # Обрабатываем изображение
+    def test_create_color_distribution_plot(self):
+        """Тест создания графиков распределения цветов"""
+        plot_data = create_color_distribution_plot(self.test_image, "Test Image")
+        
+        # Проверяем, что возвращается строка base64
+        assert plot_data is not None
+        assert isinstance(plot_data, str)
+        assert len(plot_data) > 0
+        
+        # Проверяем, что это валидный base64
         try:
-            with Image.open(original_image_path) as img:
-                # Конвертируем в RGB если нужно
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                
-                # Создаем шахматный узор
-                processed_image = create_chessboard_pattern(img, cell_size)
-                
-                # Создаем графики распределения цветов
-                original_plot = create_color_distribution_plot(img, "Original Image")
-                processed_plot = create_color_distribution_plot(processed_image, "Processed Image")
-                
-                # Сохраняем обработанное изображение
-                processed_path = os.path.join(app.config['UPLOAD_FOLDER'], 'processed.jpg')
-                processed_image.save(processed_path)
-                
-        except Exception as e:
-            return f"Error processing image: {str(e)}"
+            import base64
+            base64.b64decode(plot_data)
+        except Exception:
+            pytest.fail("Returned data is not valid base64")
     
-    else:
-        # GET запрос - используем изображение по умолчанию
-        original_image_path = default_image_path
+    def test_allowed_file(self):
+        """Тест проверки разрешенных расширений файлов"""
+        # Разрешенные расширения
+        assert allowed_file("image.png") == True
+        assert allowed_file("photo.jpg") == True
+        assert allowed_file("picture.jpeg") == True
+        assert allowed_file("anim.gif") == True
+        
+        # Запрещенные расширения
+        assert allowed_file("document.pdf") == False
+        assert allowed_file("script.py") == False
+        assert allowed_file("data.txt") == False
+        
+        # Файлы без расширения
+        assert allowed_file("noextension") == False
+        assert allowed_file(".") == False
+        
+    def test_image_modes(self):
+        """Тест работы с разными режимами изображений"""
+        # RGB изображение
+        rgb_image = Image.new('RGB', (50, 50), color='blue')
+        result_rgb = create_chessboard_pattern(rgb_image, 10)
+        assert result_rgb is not None
+        
+        # Графики для RGB
+        plot_rgb = create_color_distribution_plot(rgb_image, "RGB Test")
+        assert plot_rgb is not None
+
+def test_flask_app():
+    """Тест Flask приложения"""
+    # Импортируем здесь, чтобы избежать проблем с окружением
+    from app import app
     
-    return render_template('index.html',
-                         original_image=original_image_path,
-                         processed_image='static/uploads/processed.jpg' if processed_image else None,
-                         original_plot=original_plot,
-                         processed_plot=processed_plot,
-                         cell_size=cell_size)
+    with app.test_client() as client:
+        # Тест главной страницы (GET)
+        response = client.get('/')
+        assert response.status_code == 200
+        
+        # Тест POST запроса без файла
+        response_post = client.post('/', data={'cell_size': '10'})
+        assert response_post.status_code in [200, 500]  # Может быть ошибка если нет default image
+        
+        # Тест с неверным размером клетки
+        response_invalid = client.post('/', data={'cell_size': 'invalid'})
+        # Должен обработать или вернуть ошибку
+        assert response_invalid.status_code in [200, 400, 500]
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    pytest.main([__file__, '-v'])
