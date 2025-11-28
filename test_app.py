@@ -77,9 +77,12 @@ def test_index_post_no_file(client):
 
 def test_index_post_with_invalid_file(client):
     """Тест POST запроса с невалидным файлом"""
-    response = client.post('/', data={'cell_size': 10}, 
-                          content_type='multipart/form-data',
-                          data={'image': (b'test content', 'test.txt')})
+    response = client.post('/', 
+                          data={
+                              'cell_size': 10,
+                              'image': (b'test content', 'test.txt')
+                          },
+                          content_type='multipart/form-data')
     assert response.status_code == 200
 
 def test_app_creation():
@@ -103,9 +106,11 @@ def test_image_processing_integration(client):
         # Тестируем обработку
         with open(test_image_path, 'rb') as img:
             response = client.post('/', 
-                                 data={'cell_size': 15},
-                                 content_type='multipart/form-data',
-                                 data={'image': (img, 'test_integration.jpg')})
+                                 data={
+                                     'cell_size': 15,
+                                     'image': (img, 'test_integration.jpg')
+                                 },
+                                 content_type='multipart/form-data')
         
         assert response.status_code == 200
     finally:
