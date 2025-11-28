@@ -28,17 +28,36 @@ jobs:
       run: |
         mkdir -p static/uploads
         mkdir -p templates
+        # Создаем минимальные файлы если их нет
         if [ ! -f templates/index.html ]; then
-          echo '<!DOCTYPE html><html><body><h1>Test</h1></body></html>' > templates/index.html
+          cat > templates/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <h1>Test Page</h1>
+</body>
+</html>
+EOF
         fi
         if [ ! -f static/style.css ]; then
-          echo 'body { font-family: Arial; }' > static/style.css
+          echo "body { font-family: Arial; }" > static/style.css
         fi
     
     - name: Create default image
       run: |
-        python -c 'from PIL import Image; img = Image.new(\"RGB\", (100, 100), color=\"blue\"); img.save(\"static/uploads/default.jpg\")'
+        python -c "from PIL import Image; img = Image.new('RGB', (100, 100), color='blue'); img.save('static/uploads/default.jpg'); print('Default image created')"
     
-    - name: Run tests
+    - name: Run tests with pytest
       run: |
         pytest test_app.py -v --tb=short
+    
+    - name: Test Flask app
+      run: |
+        python -c "from app import app
+with app.test_client() as client:
+    response = client.get('/')
+    assert response.status_code == 200
+    print('✓ Flask app test passed!')"
