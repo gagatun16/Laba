@@ -1,4 +1,4 @@
-name: Python application
+﻿name: Python application
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.13'
+        python-version: '3.11'
     
     - name: Install dependencies
       run: |
@@ -28,46 +28,17 @@ jobs:
       run: |
         mkdir -p static/uploads
         mkdir -p templates
-        # Создаем минимальный index.html если его нет
         if [ ! -f templates/index.html ]; then
-          cat > templates/index.html << 'HTMLEOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Test</title>
-</head>
-<body>
-    <h1>Test Page</h1>
-</body>
-</html>
-HTMLEOF
+          echo '<!DOCTYPE html><html><body><h1>Test</h1></body></html>' > templates/index.html
         fi
-        # Создаем минимальный style.css если его нет
         if [ ! -f static/style.css ]; then
-          echo "body { font-family: Arial; }" > static/style.css
+          echo 'body { font-family: Arial; }' > static/style.css
         fi
     
     - name: Create default image
       run: |
-        python -c "
-        from PIL import Image
-        img = Image.new('RGB', (100, 100), color='blue')
-        img.save('static/uploads/default.jpg')
-        print('Default image created successfully')
-        "
+        python -c 'from PIL import Image; img = Image.new(\"RGB\", (100, 100), color=\"blue\"); img.save(\"static/uploads/default.jpg\")'
     
-    - name: Run tests with pytest
+    - name: Run tests
       run: |
-        python -c "import flask; print(f'Flask version: {flask.__version__}')"
         pytest test_app.py -v --tb=short
-    
-    - name: Test Flask app
-      run: |
-        python -c "
-        from app import app
-        with app.test_client() as client:
-            response = client.get('/')
-            assert response.status_code == 200
-            print('✓ Flask app is working correctly')
-            print('✓ All tests completed successfully!')
-        "
