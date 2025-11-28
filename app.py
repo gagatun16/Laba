@@ -15,6 +15,9 @@ DEFAULT_IMAGE = 'default.jpg'
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# Создаем папку для загрузок при запуске
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -98,6 +101,11 @@ def index():
     # Путь к изображению по умолчанию
     default_image_path = os.path.join(app.config['UPLOAD_FOLDER'], DEFAULT_IMAGE)
     
+    # Создаем изображение по умолчанию если его нет
+    if not os.path.exists(default_image_path):
+        default_img = Image.new('RGB', (400, 400), color='lightblue')
+        default_img.save(default_image_path)
+    
     if request.method == 'POST':
         # Получаем размер клетки от пользователя
         cell_size = float(request.form.get('cell_size', 10))
@@ -148,6 +156,5 @@ def index():
                          cell_size=cell_size)
 
 if __name__ == '__main__':
-    # Создаем папку для загрузок если её нет
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
