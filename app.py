@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request
 from PIL import Image, ImageDraw
 import matplotlib.pyplot as plt
 import numpy as np

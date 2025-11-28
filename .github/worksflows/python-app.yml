@@ -1,0 +1,50 @@
+name: Python application
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest
+    
+    - name: Create uploads directory
+      run: mkdir -p static/uploads
+    
+    - name: Create default image
+      run: |
+        python -c "
+        from PIL import Image
+        img = Image.new('RGB', (100, 100), color='blue')
+        img.save('static/uploads/default.jpg')
+        "
+    
+    - name: Test with pytest
+      run: |
+        pytest test_app.py -v
+    
+    - name: Run Flask app test
+      run: |
+        python -c "
+        from app import app
+        with app.test_client() as client:
+            response = client.get('/')
+            assert response.status_code == 200
+            print('Flask app test passed!')
+        "
